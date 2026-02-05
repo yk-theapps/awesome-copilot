@@ -1,7 +1,7 @@
 ---
-mode: 'agent'
-description: 'Suggest relevant GitHub Copilot collections from the awesome-copilot repository based on current repository context and chat history, providing automatic download and installation of collection assets.'
-tools: ['edit', 'search', 'runCommands', 'runTasks', 'think', 'changes', 'testFailure', 'openSimpleBrowser', 'fetch', 'githubRepo', 'todos', 'search']
+agent: 'agent'
+description: 'Suggest relevant GitHub Copilot collections from the awesome-copilot repository based on current repository context and chat history, providing automatic download and installation of collection assets, and identifying outdated collection assets that need updates.'
+tools: ['edit', 'search', 'runCommands', 'runTasks', 'think', 'changes', 'testFailure', 'openSimpleBrowser', 'web/fetch', 'githubRepo', 'todos', 'search']
 ---
 # Suggest Awesome GitHub Copilot Collections
 
@@ -10,15 +10,24 @@ Analyze current repository context and suggest relevant collections from the [Gi
 ## Process
 
 1. **Fetch Available Collections**: Extract collection list and descriptions from [awesome-copilot README.collections.md](https://github.com/github/awesome-copilot/blob/main/docs/README.collections.md). Must use `#fetch` tool.
-2. **Scan Local Assets**: Discover existing prompt files in `prompts/`, instruction files in `instructions/`, and chat modes in `chatmodes/` folders
+2. **Scan Local Assets**: Discover existing prompt files in `prompts/`, instruction files in `instructions/`, and chat modes in `agents/` folders
 3. **Extract Local Descriptions**: Read front matter from local asset files to understand existing capabilities
-4. **Analyze Repository Context**: Review chat history, repository files, programming languages, frameworks, and current project needs
-5. **Match Collection Relevance**: Compare available collections against identified patterns and requirements
-6. **Check Asset Overlap**: For relevant collections, analyze individual items to avoid duplicates with existing repository assets
-7. **Present Collection Options**: Display relevant collections with descriptions, item counts, and rationale for suggestion
-8. **Provide Usage Guidance**: Explain how the installed collection enhances the development workflow
-   **AWAIT** user request to proceed with installation of specific collections. DO NOT INSTALL UNLESS DIRECTED TO DO SO.
-9. **Download Assets**: For requested collections, automatically download and install each individual asset (prompts, instructions, chat modes) to appropriate directories. Do NOT adjust content of the files. Prioritize use of `#fetch` tool to download assets, but may use `curl` using `#runInTerminal` tool to ensure all content is retrieved.
+4. **Fetch Remote Versions**: For each local asset that matches a collection item, fetch the corresponding version from awesome-copilot repository using raw GitHub URLs (e.g., `https://raw.githubusercontent.com/github/awesome-copilot/main/<type>/<filename>`)
+5. **Compare Versions**: Compare local asset content with remote versions to identify:
+   - Assets that are up-to-date (exact match)
+   - Assets that are outdated (content differs)
+   - Key differences in outdated assets (tools, description, content)
+6. **Analyze Repository Context**: Review chat history, repository files, programming languages, frameworks, and current project needs
+7. **Match Collection Relevance**: Compare available collections against identified patterns and requirements
+8. **Check Asset Overlap**: For relevant collections, analyze individual items to avoid duplicates with existing repository assets
+9. **Present Collection Options**: Display relevant collections with descriptions, item counts, outdated asset counts, and rationale for suggestion
+10. **Provide Usage Guidance**: Explain how the installed collection enhances the development workflow
+    **AWAIT** user request to proceed with installation or updates of specific collections. DO NOT INSTALL OR UPDATE UNLESS DIRECTED TO DO SO.
+11. **Download/Update Assets**: For requested collections, automatically:
+    - Download new assets to appropriate directories
+    - Update outdated assets by replacing with latest version from awesome-copilot
+    - Do NOT adjust content of the files
+    - Use `#fetch` tool to download assets, but may use `curl` using `#runInTerminal` tool to ensure all content is retrieved
 
 ## Context Analysis Criteria
 
@@ -55,19 +64,20 @@ For each suggested collection, break down individual assets:
 **Azure & Cloud Development Collection Analysis:**
 - ✅ **New Assets (12)**: Azure cost optimization prompts, Bicep planning mode, AVM modules, Logic Apps expert mode
 - ⚠️ **Similar Assets (3)**: Azure DevOps pipelines (similar to existing CI/CD), Terraform (basic overlap), Containerization (Docker basics covered)
+- 🔄 **Outdated Assets (2)**: azure-iac-generator.agent.md (tools updated), bicep-implement.agent.md (description changed)
 - 🎯 **High Value**: Cost optimization tools, Infrastructure as Code expertise, Azure-specific architectural guidance
 
 **Installation Preview:**
 - Will install to `prompts/`: 4 Azure-specific prompts
 - Will install to `instructions/`: 6 infrastructure and DevOps best practices
-- Will install to `chatmodes/`: 5 specialized Azure expert modes
+- Will install to `agents/`: 5 specialized Azure expert modes
 
 ## Local Asset Discovery Process
 
 1. **Scan Asset Directories**:
    - List all `*.prompt.md` files in `prompts/` directory
    - List all `*.instructions.md` files in `instructions/` directory
-   - List all `*.chatmode.md` files in `chatmodes/` directory
+   - List all `*.agent.md` files in `agents/` directory
 
 2. **Extract Asset Metadata**: For each discovered file, read YAML front matter to extract:
    - `description` - Primary purpose and functionality
@@ -86,6 +96,21 @@ For each suggested collection, break down individual assets:
    - Industry best practices for identified project types
    - Missing expertise areas (security, performance, architecture, etc.)
 
+## Version Comparison Process
+
+1. For each local asset file that corresponds to a collection item, construct the raw GitHub URL:
+   - Agents: `https://raw.githubusercontent.com/github/awesome-copilot/main/agents/<filename>`
+   - Prompts: `https://raw.githubusercontent.com/github/awesome-copilot/main/prompts/<filename>`
+   - Instructions: `https://raw.githubusercontent.com/github/awesome-copilot/main/instructions/<filename>`
+2. Fetch the remote version using the `#fetch` tool
+3. Compare entire file content (including front matter and body)
+4. Identify specific differences:
+   - **Front matter changes** (description, tools, applyTo patterns)
+   - **Tools array modifications** (added, removed, or renamed tools)
+   - **Content updates** (instructions, examples, guidelines)
+5. Document key differences for outdated assets
+6. Calculate similarity to determine if update is needed
+
 ## Collection Asset Download Process
 
 When user confirms a collection installation:
@@ -98,7 +123,7 @@ When user confirms a collection installation:
 3. **Install to Appropriate Directories**:
    - `*.prompt.md` files → `prompts/` directory
    - `*.instructions.md` files → `instructions/` directory
-   - `*.chatmode.md` files → `chatmodes/` directory
+   - `*.agent.md` files → `agents/` directory
 4. **Avoid Duplicates**: Skip files that are substantially similar to existing assets
 5. **Report Installation**: Provide summary of installed assets and usage instructions
 
@@ -106,7 +131,7 @@ When user confirms a collection installation:
 
 - Use `fetch` tool to get collections data from awesome-copilot repository
 - Use `githubRepo` tool to get individual asset content for download
-- Scan local file system for existing assets in `prompts/`, `instructions/`, and `chatmodes/` directories
+- Scan local file system for existing assets in `prompts/`, `instructions/`, and `agents/` directories
 - Read YAML front matter from local asset files to extract descriptions and capabilities
 - Compare collections against repository context to identify relevant matches
 - Focus on collections that fill capability gaps rather than duplicate existing assets
@@ -125,7 +150,7 @@ When user confirms a collection installation:
    - Download raw content from GitHub repository
    - Validate file format and structure
    - Check for substantial overlap with existing local assets
-   - Install to appropriate directory (`prompts/`, `instructions/`, or `chatmodes/`)
+   - Install to appropriate directory (`prompts/`, `instructions/`, or `agents/`)
 4. **Installation Summary**: Report installed assets with usage instructions
 5. **Workflow Enhancement Guide**: Explain how the collection improves development capabilities
 
@@ -141,9 +166,18 @@ After installing a collection, provide:
 
 ## Icons Reference
 
-- ✅ Collection recommended for installation
+- ✅ Collection recommended for installation / Asset up-to-date
 - ⚠️ Collection has some asset overlap but still valuable
 - ❌ Collection not recommended (significant overlap or not relevant)
 - 🎯 High-value collection that fills major capability gaps
 - 📁 Collection partially installed (some assets skipped due to duplicates)
-- 🔄 Collection needs customization for repository-specific needs
+- 🔄 Asset outdated (update available from awesome-copilot)
+
+## Update Handling
+
+When outdated collection assets are identified:
+1. Include them in the asset analysis with 🔄 status
+2. Document specific differences for each outdated asset
+3. Provide recommendation to update with key changes noted
+4. When user requests update, replace entire local file with remote version
+5. Preserve file location in appropriate directory (`agents/`, `prompts/`, or `instructions/`)

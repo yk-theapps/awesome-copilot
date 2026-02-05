@@ -1,6 +1,6 @@
 ---
-title: 'Refactoring Java Methods with Extract Method'
-mode: 'agent'
+name: 'Refactoring Java Methods with Extract Method'
+agent: 'agent'
 description: 'Refactoring using Extract Methods in Java Language'
 ---
 
